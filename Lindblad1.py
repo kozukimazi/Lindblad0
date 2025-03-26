@@ -6,13 +6,15 @@ from scipy.linalg import eig
 import cmath
 import os
 
-
+##anticonmutador util
 def anticonmutador(A,B):
     return np.matmul(A,B) + np.matmul(B,A)
 
+#distribución de Fermi
 def fermi(E,mu,beta):
     return 1/(np.exp((E-mu)*beta) + 1)
 
+#Matrices de Pauli y identidad para Jordan Wigner
 sigmax = np.array([[0,1],
                    [1,0]])
 
@@ -28,6 +30,8 @@ sigmaz = np.array([[1,0],
 sigmaup = (sigmax + 1j*sigmay)/2
 sigmadown = (sigmax - 1j*sigmay)/2
 
+#Aqui se empieza hacer Jordan Wigner
+#Uso la definición que esta en el libro de Schaller, (Open quantum systems Far From equilibrium)
 auxdag = np.kron(sigmaz,sigmaup)
 aux = np.kron(sigmaz,sigmadown)
 
@@ -42,6 +46,7 @@ dr = np.kron(aux,np.eye(2))
 dddag = np.kron(auxd,sigmaup)
 dd = np.kron(auxd,sigmadown)
 
+#operadores de numero 
 nd = np.matmul(dddag,dd)
 nl = np.matmul(dldag,dl)
 nr = np.matmul(drdag,dr)
@@ -101,6 +106,7 @@ def Propagate(rho0,superop,t):
     vec_rho_t = propagator @ np.reshape(rho0,(d**2,1))
     return np.reshape( vec_rho_t, (d,d) )
 
+####Hamiltoniano especifico
 def Hamiltonian(El,Er,Ed,U,glr,gld,grd):
     sites = El*nl + Er*nr + Ed*nd
     couplinglr = glr*( np.matmul(dldag,dr) + np.matmul(drdag,dl) )
@@ -121,6 +127,7 @@ def coupling(El,Er,Ed,glr,gld,grd):
     [gld, grd, Ed]] )
     return mat 
 
+###corrientes de calor, produccion de entropia,flujo de energia,etc..
 def currents(Htd,mul,mur,mud,Ll,Lr,Ld,superop,rho0,t):
     Nop = nl + nr + nd
     rhof = Propagate(rho0,superop,t)    
@@ -156,14 +163,14 @@ def currents(Htd,mul,mur,mud,Ll,Lr,Ld,superop,rho0,t):
     Nr = np.trace(np.matmul(Dr,Nop ))
     Nd = np.trace(np.matmul( Dd,Nop ))
     return Ql.real, Qr.real, Qd.real, Sl.real, Sr.real,Sd.real, El.real, Er.real, Ed.real, Wl.real,Wr.real,Wd.real,Nl.real,Nr.real,Nd.real
-
-El = 0
-Er = 0
-Ed = 0
+eps = 1E-5
+El = 1
+Er = 1
+Ed = 1
 U0 = 40
 glr = 5/1000
-gld = 3/1000
-grd = 2/1000
+gld = (5/1000)-eps
+grd = (5/1000)+eps
 eV = 6.5
 mul1 = eV/2
 mur1 = -eV/2
@@ -228,7 +235,7 @@ Probnt7 = []
 Probnt8 = []
 traza = []
 cohe = []
-concu = []
+
 for ts in times:
     cal1 = Propagate(rho0,superop,ts)
     auxp = np.matmul(dldag,dr)
@@ -244,12 +251,8 @@ for ts in times:
     Probnt6.append(cal1[5,5].real )
     Probnt7.append(cal1[6,6].real ) 
     Probnt8.append(cal1[7,7].real ) 
-    cohe.append(abs(cal1[5,3]) + abs(cal1[4,2]) )
-    cohesum = abs(cal1[5,3] + cal1[4,2])
-    PD = cal1[0,0].real + cal1[1,1].real 
-    P0 = cal1[7,7].real + cal1[6,6].real 
-    concurrence = 2*cohesum - 2*np.sqrt(P0*PD) 
-    concu.append(concurrence)
+    cohe.append(abs(cal1[5,3])+ abs(cal1[3,6])+abs(cal1[5,6]) +abs(cal1[1,2])+ abs(cal1[1,4]) + abs(cal1[4,2]) )
+ 
 
 plt.plot(times,Probnt1,label = "3 ocupados")
 plt.plot(times,Probnt2, label = "ocupado r y l")
@@ -267,11 +270,8 @@ plt.plot(times,cohe)
 plt.xlabel(r'$t$', fontsize = 20)
 plt.ylabel(r'$\mathcal{C}_{l_{1}}$', fontsize = 20)
 plt.show()
-#plt.scatter(times,Probnt2,label = "Baño_d")
-plt.plot(times,concu)
-plt.xlabel(r'$t$', fontsize = 20)
-plt.ylabel(r'$\mathcal{C}_{on}$', fontsize = 20)
-plt.show()
+
+
 
 values =  Propagate(rho0,superop,3000)
 
